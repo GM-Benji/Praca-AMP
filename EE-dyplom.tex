@@ -15,49 +15,38 @@
 %  * msc - master thesis
 
 % Skróty nazw wydziałów zgodne z domenami internetowymi
-% Abbreviations of Faculties according to Internet subdomains
-% faculty=[
-%	arch,
-%	gik,
-%	ee,
-%	wip
-%	]
+% faculty=[arch, gik, ee, wip]
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Konfiguracja - do personalizacji
 % Configuration - to be personalized
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\instytut{Instytut Badawczy Zjednoczonych Przedsiębiorstw Elektronowych}
-\kierunek{Mechaneurystyka}
-\specjalnosc{Rzeczowidztwo}
-\title{Telechroniczna Optymalizacja Historii~Powszechnej~Hyperputerem}
-\engtitle{Telechronic Optimization of~Universal~History Using~Hyperputer}
-\album{210912}
-\author{inż. Ijon Tichy}
-\promotor{prof. dr hab. inż. Astral Sternu Tarantoga}
-\date{2077}
-\longdate{2077-07-27}
+\instytut{Instytut Elektrotechniki Teoretycznej i Systemów Informacyjno-Pomiarowych}
+\kierunek{Informatyka Stosowana}
+\specjalnosc{Inżynieria Komputerowa}
+\title{Projekt i implementacja systemu wbudowanego z asymetrycznym przetwarzaniem wielordzeniowym}
+\engtitle{Design and implementation of an embedded system with asymmetric multiprocessing}
+\album{331797}
+\author{Beniamin Raczyński}
+\promotor{STOPIEŃ I NAZWISKO PROMOTORA}
+\date{2024}
+\longdate{2024-06-15}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Streszczenie pracy i abstract.
 % In case of thesis in English swap the order - English version goes first.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \streszczeniepracy{
-To jest streszczenie. To jest trochę za krótkie, jako że powinno zająć całą stronę.
-
-Streszczenie to nie to samo co wstęp. Streszczenie przedstawia informacje o tym, co się znajduje w tekście poszczególnych rozdziałów danej pracy podczas gdy ,,Wstęp'' służy przedstawieniu zagadnienia podjętego w~pracy. Streszczenie prezentuje aktualny stan pracy dyplomowej, której pisanie zostało zakończone a~więc należy w~nim posługiwać się czasem teraźniejszym.
-
+Niniejsza praca opisuje proces projektowania i implementacji systemu wbudowanego opartego na architekturze AMP (ang. Asymmetric Multiprocessing). W ramach projektu skonfigurowano środowisko pracy z dostępem VPN (Tailscale), skompilowano system operacyjny Linux oraz wydzielono zasoby procesora dla kodu działającego w trybie bare-metal. Omówiono mechanizmy komunikacji IPC oraz integrację sprzętu poprzez drzewo urządzeń (Device Tree).
 } % koniec streszczenia
 
-\slowakluczowe{A, B, C}
+\slowakluczowe{SoC, Linux, Bare-metal, AMP, IPC, Device Tree, Tailscale}
 
 \thesisabstract{
-This is abstract. This one is a little too short as it should occupy the whole page.
-
-An abstract is not the same as an introduction. The abstract provides information about what is contained in the text of specific chapters of a given work, whereas the introduction serves to present the topic addressed in the work. The abstract presents the current state of the diploma thesis, the writing of which has been completed, and therefore it should be written in the present tense.
+This thesis describes the design and implementation of an embedded system based on AMP (Asymmetric Multiprocessing) architecture. The project involved configuring a development environment with VPN access (Tailscale), compiling the Linux operating system, and isolating processor resources for code running in bare-metal mode. IPC communication mechanisms and hardware integration via the Device Tree are discussed.
 } % end of abstract
 
-\thesiskeywords{X, Y, Z}
+\thesiskeywords{SoC, Linux, Bare-metal, AMP, IPC, Device Tree, Tailscale}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Tu zaczyna się dokument
@@ -71,10 +60,14 @@ An abstract is not the same as an introduction. The abstract provides informatio
     % Tekst pracy - osobne pliki do edycji
     % Thesis text - separate files for edition
 
-	\input{tekst/wstep}
-	\input{tekst/analiza}
-	\input{tekst/realizacja}
-	\input{tekst/podsumowanie}
+    \input{tekst/01_wstep}
+    \input{tekst/02_stanowisko}
+    \input{tekst/03_architektura}
+    \input{tekst/04_kompilacja}
+    \input{tekst/05_sprzet_dtb}
+    \input{tekst/06_sterowniki}
+    \input{tekst/07_bare_metal}
+    \input{tekst/08_podsumowanie}
 
     % Bibliografia - musi być, jest w pliku EE-dyplom.bib
     % Bibliography - must exist, is in the file EE-dyplom.bib
@@ -93,4 +86,3 @@ An abstract is not the same as an introduction. The abstract provides informatio
     \easyappendices
 \end{document}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-

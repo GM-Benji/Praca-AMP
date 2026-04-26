@@ -1,0 +1,10 @@
+\chapter{Oprogramowanie bez systemu operacyjnego (Bare-metal)}
+\label{ch:bare_metal}
+
+Na wydzielonym wcześniej rdzeniu procesora wykonuje się krytyczny czasowo kod aplikacji. Działa on całkowicie niezależnie, z~bezpośrednim dostępem do sprzętu, nie ponosząc narzutu wynikającego z~zarządzania wątkami czy pamięcią wirtualną przez system Linux.
+
+\section{Punkt wejścia i~inicjalizacja}
+Napisano kod startowy w~asemblerze, który odpowiada za ustawienie wskaźnika stosu oraz wektorów przerwań, po czym przekazuje sterowanie do funkcji głównej zaimplementowanej w~języku C.
+
+\section{Pętla główna i~wymiana danych}
+Wątek główny aplikacji okresowo próbkuje wejścia sprzętowe oraz odczytuje komendy przesyłane z~systemu operacyjnego poprzez obszar współdzielonej pamięci.

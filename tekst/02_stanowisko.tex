@@ -1,0 +1,10 @@
+\chapter{Przygotowanie stanowiska pracy i~infrastruktury}
+\label{ch:stanowisko}
+
+Realizacja złożonych projektów dla systemów wbudowanych wymaga przygotowania elastycznego i~bezpiecznego środowiska pracy. W~tym rozdziale opisano konfigurację sieciową oraz interfejsy dostępowe do sprzętu.
+
+\section{Dostęp zdalny z~wykorzystaniem sieci VPN Tailscale}
+Aby umożliwić bezproblemowy dostęp do serwera kompilacyjnego oraz fizycznej platformy sprzętowej bez konieczności posiadania publicznego adresu IP, wykorzystano sieć opartą na technologii WireGuard -- Tailscale. Rozwiązanie to pozwoliło na utworzenie bezpiecznej sieci wirtualnej (ang. \textit{mesh VPN}).
+
+\section{Komunikacja szeregowa i~interfejs USB Blaster}
+Do niskopoziomowej komunikacji z~układem SoC wykorzystano komunikację szeregową (UART). Programowanie części sprzętowej (FPGA) oraz bezpośredni dostęp do procesora zrealizowano za pomocą interfejsu USB Blaster.

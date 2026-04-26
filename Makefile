@@ -1,3 +1,6 @@
+# Domyślny cel uruchamiany po wpisaniu samego 'make'
+all: sololetters pdflatex
+
 xelatex : clean
 	xelatex EE-dyplom
 	biber EE-dyplom
@@ -27,4 +30,4 @@ sololetters:
 	sed -i 's/ O / O\~/g' tekst/*.tex
 
 clean :
-	-rm *.acn *.app *.aux *.bbl *.blg *.bcf *.glo *.ist *.lof *.log *.lot *.out *.pdf *.run.xml *.slo *.toc
+	-rm -f *.acn *.app *.aux *.bbl *.blg *.bcf *.glo *.ist *.lof *.log *.lot *.out *.pdf *.run.xml *.slo *.toc

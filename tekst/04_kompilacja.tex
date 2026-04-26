@@ -1,0 +1,10 @@
+\chapter{Kompilacja systemu wbudowanego}
+\label{ch:kompilacja}
+
+Rozdział ten opisuje proces dostosowania oraz budowy niestandardowego obrazu jądra systemu Linux i~systemu plików (ang. \textit{rootfs}).
+
+\section{Środowisko budowania}
+Do wygenerowania docelowych obrazów systemu wykorzystano odpowiednio skonfigurowany zestaw narzędzi do kompilacji skrośnej (ang. \textit{cross-compilation toolchain}).
+
+\section{Konfiguracja jądra Linux}
+Wprowadzono specyficzne modyfikacje w~konfiguracji jądra (Kconfig), mające na celu włączenie obsługi dedykowanych mechanizmów sprzętowych zarządzania pamięcią oraz sterowników.

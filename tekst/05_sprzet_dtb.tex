@@ -1,0 +1,10 @@
+\chapter{Opis sprzętowy i~drzewo urządzeń (Device Tree)}
+\label{ch:sprzet_dtb}
+
+W nowoczesnych systemach osadzonych opartych na architekturze ARM, informacja o~fizycznie podłączonych peryferiach jest przekazywana do jądra operacyjnego w~postaci struktury zwanej drzewem urządzeń (ang. \textit{Device Tree}).
+
+\section{Struktura pliku DTS}
+Na potrzeby projektu utworzono i~zmodyfikowano pliki źródłowe \texttt{.dts} i~\texttt{.dtsi}. Opisano w~nich m.in. zarezerwowane obszary pamięci dla rdzenia bare-metal.
+
+\section{Kompilacja urządzenia do formatu DTB}
+Plik źródłowy został skompilowany za pomocą narzędzia \texttt{dtc} do binarnej postaci \texttt{.dtb} (ang. \textit{Device Tree Blob}), która jest odczytywana przez bootloader na wczesnym etapie startu urządzenia.

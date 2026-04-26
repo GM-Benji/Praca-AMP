@@ -1,0 +1,7 @@
+\chapter{Sterowniki urządzeń w~systemie Linux}
+\label{ch:sterowniki}
+
+Aby system operacyjny mógł korzystać z~zaprojektowanych komponentów sprzętowych oraz wymieniać dane z~rdzeniem pomocniczym, stworzono dedykowane moduły jądra (ang. \textit{Kernel Modules}).
+
+\section{Implementacja modułu jądra}
+Sterownik został napisany w~języku C z~wykorzystaniem frameworków dostarczanych przez jądro Linux. Sterownik jest odpowiedzialny za mapowanie odpowiednich przestrzeni adresowych przy pomocy funkcji \texttt{ioremap} i~obsługę zgłoszeń (przerwań).

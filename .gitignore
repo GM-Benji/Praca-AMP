@@ -1,4 +1,4 @@
-Makefile
+# Pliki tymczasowe i logi kompilacji LaTeX
 **/*.acn
 **/*.acr
 **/*.alg
@@ -22,3 +22,13 @@ Makefile
 **/*.sls
 **/*.swp
 **/*.toc
+**/*.fls
+**/*.fdb_latexmk
+**/*.synctex.gz
+**/*.xdv
+
+# Pliki edytorów
+.vscode/
+.idea/
+*.bak
+*~
