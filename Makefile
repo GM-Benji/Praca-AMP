@@ -1,5 +1,5 @@
 # Domyślny cel uruchamiany po wpisaniu samego 'make'
-all: sololetters pdflatex
+all: sololetters xelatex
 
 xelatex : clean
 	xelatex EE-dyplom

@@ -1,7 +1,37 @@
 \chapter{Sterowniki urządzeń w~systemie Linux}
 \label{ch:sterowniki}
 
-Aby system operacyjny mógł korzystać z~zaprojektowanych komponentów sprzętowych oraz wymieniać dane z~rdzeniem pomocniczym, stworzono dedykowane moduły jądra (ang. \textit{Kernel Modules}).
+Aby system operacyjny mógł korzystać z~zaprojektowanych komponentów sprzętowych oraz wymieniać dane z~rdzeniem pomocniczym, stworzono dedykowane moduły jądra (ang. \textit{Kernel Modules})[cite: 18]. W~szczególności skupiono się na autorskim sterowniku nadzorczym o~nazwie \texttt{wake\_a55.ko}.
 
-\section{Implementacja modułu jądra}
-Sterownik został napisany w~języku C z~wykorzystaniem frameworków dostarczanych przez jądro Linux. Sterownik jest odpowiedzialny za mapowanie odpowiednich przestrzeni adresowych przy pomocy funkcji \texttt{ioremap} i~obsługę zgłoszeń (przerwań).
+\section{Implementacja modułu jądra zarządzającego AMP}
+Sterownik został napisany w~języku C z~wykorzystaniem frameworków dostarczanych przez jądro Linux[cite: 19]. Jego podstawowym zadaniem jest przygotowanie wyizolowanego środowiska dla oprogramowania bare-metal oraz inicjacja wektora resetu dla rdzenia Cortex-A55.
+
+Sterownik jest odpowiedzialny za mapowanie odpowiednich przestrzeni adresowych przy pomocy funkcji \texttt{ioremap} i~obsługę zgłoszeń (przerwań)[cite: 20]. Zaimplementowano dynamiczne tworzenie wpisów w~wirtualnym systemie plików \texttt{sysfs}, eksponując interfejs użytkowy w~katalogu \texttt{/sys/kernel/baremetal/}.
+
+% MIEJSCE NA GRAFIKĘ: Architektura sterownika i~warstwy użytkownika
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=0.8\textwidth]{rysunki/sysfs_driver.png}
+    \vspace{5cm} % Usunąć po dodaniu grafiki
+    \caption{[MIEJSCE NA RYSUNEK] Model współdzielenia danych i~komunikacji pomiędzy procesem przestrzeni użytkownika, sterownikiem wake\_a55 a~fizycznym rdzeniem.}
+    \label{fig:sysfs_driver}
+\end{figure}
+
+\section{Interfejs użytkowy i~ładowanie firmware}
+Zaprojektowany interfejs plikowy pozwala na bezproblemową interakcję z~rdzeniem pomocniczym bezpośrednio z~poziomu powłoki (CLI) systemu wbudowanego. Plik wykonywalny przestrzeni użytkownika (np. skrypt startowy) kopiuje skompilowany plik \texttt{.bin} do wyeksponowanego węzła \texttt{fw}, a~następnie uaktywnia jednostkę obliczeniową.
+
+\begin{lstlisting}[language=bash, caption={Zarządzanie rdzeniem za pomocą wywołań wirtualnego systemu plików sysfs}, label={lst:sysfs_usage}]
+# Zazaladowanie pliku z~logiką bare-metal do zarezerwowanej pamięci
+cat baremetal_a55.bin > /sys/kernel/baremetal/fw
+
+# Wybudzenie czwartego rdzenia (Cortex-A55)
+echo 1 > /sys/kernel/baremetal/wake
+
+# Wysłanie komendy testowej poprzez kanał zero-copy IPC
+echo "HELLO_AGILEX" > /sys/kernel/baremetal/cmd
+
+# Odczyt logów i~odpowiedzi z~rdzenia bare-metal
+cat /sys/kernel/baremetal/log
+\end{lstlisting}
+
+Mechanizm \texttt{sysfs} eliminuje konieczność kompilowania dodatkowych programów przestrzeni użytkownika (np. opartych na wywołaniach \texttt{ioctl}), gwarantując wysoką przenośność oraz łatwość debugowania logiki IPC działającej po drugiej stronie architektury asymetrycznej.

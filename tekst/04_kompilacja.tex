@@ -1,10 +1,35 @@
 \chapter{Kompilacja systemu wbudowanego}
 \label{ch:kompilacja}
 
-Rozdział ten opisuje proces dostosowania oraz budowy niestandardowego obrazu jądra systemu Linux i~systemu plików (ang. \textit{rootfs}).
+Rozdział ten opisuje proces dostosowania oraz budowy niestandardowego obrazu jądra systemu Linux i~systemu plików (ang. \textit{rootfs})[cite: 15]. Z~uwagi na specyfikę systemów czasu rzeczywistego, zrezygnowano ze standardowych, ogólnych dystrybucji na rzecz rozwiązania szytego na miarę.
 
-\section{Środowisko budowania}
-Do wygenerowania docelowych obrazów systemu wykorzystano odpowiednio skonfigurowany zestaw narzędzi do kompilacji skrośnej (ang. \textit{cross-compilation toolchain}).
+\section{Środowisko budowania i~struktura repozytorium}
+Do wygenerowania docelowych obrazów systemu wykorzystano odpowiednio skonfigurowany zestaw narzędzi do kompilacji skrośnej (ang. \textit{cross-compilation toolchain})[cite: 16], przeznaczony dla architektury ARM64 (\texttt{aarch64-linux-gnu-gcc}). Organizację kodu oparto na systemie kontroli wersji Git, wykorzystując mechanizm submodułów w~celu izolacji głównego kodu integracyjnego od zmodyfikowanych źródeł jądra Linux (drzewo Intela z~łatą PREEMPT\_RT).
+
+Dla zapewnienia spójności konfiguracji pomiędzy różnymi terminalami roboczymi, parametry kompilacji skrośnej zostały zdefiniowane bezpośrednio w~głównym pliku \texttt{Makefile} projektu:
+
+\begin{lstlisting}[language=make, caption={Fragment pliku Makefile definujący zmienne dla kompilacji skrośnej}, label={lst:makefile_cross}]
+# Zmienne środowiskowe dla architektury ARM64
+export ARCH ?= arm64
+export CROSS_COMPILE ?= aarch64-linux-gnu-
+
+export KDIR := $(CURDIR)/linux-source
+export INCLUDE_DTS := $(KDIR)/arch/arm64/boot/dts/intel
+\end{lstlisting}
 
 \section{Konfiguracja jądra Linux}
-Wprowadzono specyficzne modyfikacje w~konfiguracji jądra (Kconfig), mające na celu włączenie obsługi dedykowanych mechanizmów sprzętowych zarządzania pamięcią oraz sterowników.
+Wprowadzono specyficzne modyfikacje w~konfiguracji jądra (Kconfig), mające na celu włączenie obsługi dedykowanych mechanizmów sprzętowych zarządzania pamięcią oraz sterowników[cite: 17]. Używając interfejsu \texttt{menuconfig}, dołączono między innymi sterownik układu AMC6821, pełniącego funkcję sprzętowego monitora i~kontrolera wentylatora. 
+
+Wynikowa konfiguracja została zrzucona do pliku \texttt{defconfig}, co pozwoliło na jej trwałe włączenie do repozytorium oraz zautomatyzowanie wielowątkowego procesu kompilacji komendą \texttt{make -j\$(nproc) Image modules dtbs}.
+
+% MIEJSCE NA GRAFIKĘ: Diagram przepływu procesu kompilacji
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=0.8\textwidth]{rysunki/proces_kompilacji.png}
+    \vspace{5cm} % Usunąć po dodaniu grafiki
+    \caption{[MIEJSCE NA RYSUNEK] Schemat przepływu procesu kompilacji (od źródeł C do plików wykonywalnych obrazu jądra i~modułów).}
+    \label{fig:kompilacja_flow}
+\end{figure}
+
+\section{System plików Yocto Project}
+Istotnym krokiem było wdrożenie ultralekkiego systemu plików opartym na dystrybucji Poky (Yocto Project), który zastąpił wysoce zasobożerne obrazy systemu Ubuntu. Przejście na Yocto znacząco zredukowało rozmiar systemu operacyjnego na partycji rootfs (do niespełna 30 MB) oraz zminimalizowało narzut procesów działających w~tle, co jest kluczowe dla zagwarantowania wymogów determinizmu w~systemach RT (ang. \textit{Real-Time}).

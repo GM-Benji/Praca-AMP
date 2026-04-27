@@ -1,10 +1,28 @@
 \chapter{Opis sprzętowy i~drzewo urządzeń (Device Tree)}
 \label{ch:sprzet_dtb}
 
-W nowoczesnych systemach osadzonych opartych na architekturze ARM, informacja o~fizycznie podłączonych peryferiach jest przekazywana do jądra operacyjnego w~postaci struktury zwanej drzewem urządzeń (ang. \textit{Device Tree}).
+W nowoczesnych systemach osadzonych opartych na architekturze ARM, informacja o~fizycznie podłączonych peryferiach jest przekazywana do jądra operacyjnego w~postaci struktury zwanej drzewem urządzeń (ang. \textit{Device Tree})[cite: 12]. Stanowi ono sprzętową mapę, która uniezależnia kod skompilowanego jądra od konkretnej topologii płyty bazowej.
 
-\section{Struktura pliku DTS}
-Na potrzeby projektu utworzono i~zmodyfikowano pliki źródłowe \texttt{.dts} i~\texttt{.dtsi}. Opisano w~nich m.in. zarezerwowane obszary pamięci dla rdzenia bare-metal.
+\section{Struktura pliku DTS i~rezerwacja pamięci}
+Na potrzeby projektu utworzono i~zmodyfikowano pliki źródłowe \texttt{.dts} i~\texttt{.dtsi}[cite: 13]. W~pliku nadrzędnym \texttt{socfpga\_agilex5\_de25\_nano.dts} zadeklarowano włączenie (\textit{include}) plików bazowych dla SoC Agilex 5. 
+
+Kluczowym elementem implementacji było utworzenie węzła \texttt{/reserved-memory}. Opisano w~nich m.in. zarezerwowane obszary pamięci dla rdzenia bare-metal[cite: 13]. Przestrzeń ta została całkowicie wyłączona z~puli dostępnej dla alokatora pamięci jądra systemu Linux. 
+
+\begin{lstlisting}[language=C, caption={Przykładowy fragment deklaracji przestrzeni reserved-memory}, label={lst:dts_mem}]
+reserved-memory {
+    #address-cells = <2>;
+    #size-cells = <2>;
+    ranges;
+
+    baremetal_ram: baremetal_memory@80000000 {
+        no-map;
+        reg = <0x0 0x80000000 0x0 0x10000000>; /* 256 MB */
+    };
+};
+\end{lstlisting}
+
+\section{Konfiguracja magistrali I2C}
+Drzewo urządzeń posłużyło również do inicjalizacji układów peryferyjnych na platformie Terasic DE25-Nano. Dokonano modyfikacji odpowiedniego węzła magistrali I2C w~celu uwzględnienia układu AMC6821. Dzięki temu, wbudowany w~jądro sterownik mógł automatycznie rozpoznać układ pod zdefiniowanym adresem sprzętowym i~utworzyć dowiązania w~podsystemie \texttt{hwmon} do sterowania chłodzeniem SoC.
 
 \section{Kompilacja urządzenia do formatu DTB}
-Plik źródłowy został skompilowany za pomocą narzędzia \texttt{dtc} do binarnej postaci \texttt{.dtb} (ang. \textit{Device Tree Blob}), która jest odczytywana przez bootloader na wczesnym etapie startu urządzenia.
+Plik źródłowy został skompilowany za pomocą narzędzia \texttt{dtc} do binarnej postaci \texttt{.dtb} (ang. \textit{Device Tree Blob}), która jest odczytywana przez bootloader na wczesnym etapie startu urządzenia[cite: 14]. W~ramach zautomatyzowanego potoku budowania w~głównym pliku \texttt{Makefile}, proces ten zintegrowano z~preprocesorem języka C (\texttt{cpp}), co umożliwiło poprawne rozwijanie dyrektyw \texttt{\#include} przed ostatecznym generowaniem formatu binarnego.

@@ -1,10 +1,24 @@
 \chapter{Architektura systemu operacyjnego i~podział zasobów}
 \label{ch:architektura}
 
-Głównym założeniem architektonicznym projektu było rozdzielenie zadań pomiędzy dostępnymi rdzeniami procesora. 
+Głównym założeniem architektonicznym projektu było rozdzielenie zadań pomiędzy dostępnymi rdzeniami procesora[cite: 21]. Wykorzystany w~projekcie układ SoC (ang. \textit{System on a~Chip}) Intel Agilex 5 bazuje na asymetrycznej architekturze big.LITTLE, integrując wydajne rdzenie ARM Cortex-A76 oraz energooszczędne rdzenie ARM Cortex-A55. Architektura ta stanowiła fundament do wdrożenia koncepcji AMP (ang. \textit{Asymmetric Multiprocessing}).
+
+\section{Podział ról w~architekturze AMP}
+W~ramach środowiska wbudowanego zaprojektowano topologię, w~której główny system operacyjny ze zintegrowaną łatą czasu rzeczywistego (PREEMPT\_RT) operuje na trzech rdzeniach (2x Cortex-A76 oraz 1x Cortex-A55). Czwarty rdzeń, będący procesorem Cortex-A55, został trwale wyizolowany i~w~pełni dedykowany do bezpośredniego wykonywania instrukcji w~trybie bare-metal, bez narzutu systemu operacyjnego.
+
+% MIEJSCE NA GRAFIKĘ: Schemat blokowy SoC z~podziałem na Linux i~Bare-metal
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=0.8\textwidth]{rysunki/architektura_amp.png}
+    \vspace{5cm} % Usunąć po dodaniu grafiki
+    \caption{[MIEJSCE NA RYSUNEK] Schemat logiczny podziału rdzeni układu Agilex 5 w~konfiguracji AMP.}
+    \label{fig:arch_amp}
+\end{figure}
 
 \section{Wydzielenie rdzenia z~systemu Linux (Core Isolation)}
-Aby zapewnić przewidywalny czas wykonywania dla kodu bare-metal, system Linux musiał zostać pozbawiony kontroli nad jednym z~rdzeni CPU. Zrealizowano to za pomocą argumentów linii komend jądra (np. parametr \texttt{isolcpus}), co uchroniło dany rdzeń przed standardowym planistą (ang. \textit{scheduler}) systemu operacyjnego.
+Aby zapewnić przewidywalny czas wykonywania dla kodu bare-metal, system Linux musiał zostać pozbawiony kontroli nad jednym z~rdzeni CPU[cite: 22]. Zrealizowano to za pomocą argumentów linii komend jądra (np. parametr \texttt{isolcpus}), co uchroniło dany rdzeń przed standardowym planistą (ang. \textit{scheduler}) systemu operacyjnego[cite: 23]. Dodatkowo skonfigurowano odpowiednie parametry alokacji pamięci, aby jądro Linux nie nadpisywało fizycznej przestrzeni RAM, w~której znajduje się oprogramowanie układowe dla izolowanego rdzenia.
 
 \section{Mechanizmy komunikacji międzyprocesorowej (IPC)}
-Komunikacja pomiędzy systemem Linux uruchomionym na głównym klastrze rdzeni, a~kodem bare-metal działającym na rdzeniu wydzielonym, wymagała niezawodnego mechanizmu IPC (ang. \textit{Inter-Processor Communication}). Wykorzystano do tego bloki pamięci współdzielonej (Shared Memory) oraz przerwania sprzętowe typu IPI (ang. \textit{Inter-Processor Interrupt}).
+Komunikacja pomiędzy systemem Linux uruchomionym na głównym klastrze rdzeni, a~kodem bare-metal działającym na rdzeniu wydzielonym, wymagała niezawodnego mechanizmu IPC (ang. \textit{Inter-Processor Communication})[cite: 24]. Wykorzystano do tego bloki pamięci współdzielonej (ang. \textit{Shared Memory}) oraz przerwania sprzętowe typu IPI (ang. \textit{Inter-Processor Interrupt})[cite: 25]. 
+
+Opracowano mechanizm oparty na koncepcji \textit{zero-copy}, co pozwala na przekazywanie wskaźników do bloków danych bezpośrednio przez rejestry pocztowe lub bufory pierścieniowe, eliminując kosztowne operacje kopiowania pamięci pomiędzy domenami.
