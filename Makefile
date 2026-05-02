@@ -1,19 +1,20 @@
-# Domyślny cel uruchamiany po wpisaniu samego 'make'
+MAIN_FILE = Architektura_AMP
+
 all: sololetters xelatex
 
 xelatex : clean
-	xelatex EE-dyplom
-	biber EE-dyplom
-	makeglossaries EE-dyplom
-	xelatex EE-dyplom
-	xelatex EE-dyplom
+	xelatex $(MAIN_FILE)
+	biber $(MAIN_FILE)
+	makeglossaries $(MAIN_FILE)
+	xelatex $(MAIN_FILE)
+	xelatex $(MAIN_FILE)
 
 pdflatex : clean
-	pdflatex EE-dyplom
-	biber EE-dyplom
-	makeglossaries EE-dyplom
-	pdflatex EE-dyplom
-	pdflatex EE-dyplom
+	pdflatex $(MAIN_FILE)
+	biber $(MAIN_FILE)
+	makeglossaries $(MAIN_FILE)
+	pdflatex $(MAIN_FILE)
+	pdflatex $(MAIN_FILE)
 	
 sololetters:
 	sed -i 's/ a / a\~/g' tekst/*.tex

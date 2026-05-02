@@ -1,32 +1,49 @@
-% Akronim: nazwa symboliczna (dla LaTeXa), nazwa skrócona, nazwa pełna
-\newacronym{IEEE}{IEEE}{Institute of Electrical and Electronics Engineers}
-\newacronym{CPEE}{CPEE}{Computational Problems of Electrical Engineering}
-\newacronym{PW}{PW}{Politechnika Warszawska}
-\newacronym{IETiSIP}{IETiSIP}{Instytut Elektrotechniki Teoretycznej i~Systemów Informacyjno-Pomiarowych}
-\newacronym{laser}{LASER}{Light Amplification by Stimulated Emission of Radiation}
+% Akronimy: nazwa symboliczna (dla LaTeXa), nazwa skrócona, nazwa pełna
+\newacronym{AMP}{AMP}{Asymmetric Multiprocessing}
+\newacronym{SoC}{SoC}{System on a~Chip}
+\newacronym{IPC}{IPC}{Inter-Processor Communication}
+\newacronym{FPGA}{FPGA}{Field-Programmable Gate Array}
+\newacronym{HPS}{HPS}{Hard Processor System}
+\newacronym{DTB}{DTB}{Device Tree Blob}
+\newacronym{DTS}{DTS}{Device Tree Source}
+\newacronym{RT}{RT}{Real-Time}
+\newacronym{VPN}{VPN}{Virtual Private Network}
+\newacronym{UART}{UART}{Universal Asynchronous Receiver-Transmitter}
+\newacronym{SSH}{SSH}{Secure Shell}
+\newacronym{SMC}{SMC}{Secure Monitor Call}
+\newacronym{MAC}{MAC}{Media Access Control}
+\newacronym{IP}{IP}{Internet Protocol}
+\newacronym{RAM}{RAM}{Random Access Memory}
+\newacronym{CLI}{CLI}{Command Line Interface}
+\newacronym{IPI}{IPI}{Inter-Processor Interrupt}
 
-\newglossaryentry{symb:Phi}{
-name=$\phi$,
-description={foobar.},
-sort=symbolphi, type=symbols
+% Wpisy do słownika pojęć (Glossary)
+\newglossaryentry{baremetal}{
+    name={Bare-metal}, 
+    description={Oprogramowanie wykonywane bezpośrednio na sprzęcie, bez pośrednictwa systemu operacyjnego oraz bez mechanizmów zarządzania pamięcią wirtualną.}
 }
 
-\newglossaryentry{test}{name={TeSt}, description={testowanie}}
-
-\newglossaryentry{symb:I}{
-name={\ensuremath{I}},
-description={Natężęnie prądu elektrycznego.},
-sort=symbI, type=symbols
+\newglossaryentry{ringbuffer}{
+    name={Bufor kołowy}, 
+    description={Struktura danych o~stałym rozmiarze (ang. \textit{ring buffer}), w~której koniec bufora łączy się z~jego początkiem. W~projekcie wykorzystywana do bezkolizyjnej komunikacji IPC.}
 }
 
-\newglossaryentry{symb:Pi}{
-name=$\pi$,
-description={Stała matematyczna równa stosunkowi długości okręgu do jego średnicy.},
-sort=symbolpi, type=symbols
+\newglossaryentry{lwh2f}{
+    name={LWH2F}, 
+    description={Lightweight HPS-to-FPGA -- lekki mostek komunikacyjny pomiędzy systemem procesora (HPS) a~matrycą programowalną (FPGA).}
 }
 
-\newglossaryentry{symb:rho}{
-name=$\rho$,
-description={Opór właściwy.},
-sort=symbolrho, type=symbols
+\newglossaryentry{yocto}{
+    name={Yocto Project}, 
+    description={Środowisko (tzw. \textit{build system}) służące do tworzenia zoptymalizowanych, dedykowanych dystrybucji systemu Linux dla systemów wbudowanych.}
+}
+
+\newglossaryentry{sysfs}{
+    name={sysfs}, 
+    description={Wirtualny system plików w~systemie Linux, który eksponuje informacje o~urządzeniach i~sterownikach do przestrzeni użytkownika.}
+}
+
+\newglossaryentry{tailscale}{
+    name={Tailscale}, 
+    description={Oprogramowanie tworzące wirtualną sieć prywatną w~topologii kraty (ang. \textit{mesh VPN}) opartą na protokole WireGuard.}
 }

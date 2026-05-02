@@ -1,10 +1,12 @@
 \chapter{Architektura systemu operacyjnego i~podział zasobów}
 \label{ch:architektura}
 
-Głównym założeniem architektonicznym projektu było rozdzielenie zadań pomiędzy dostępnymi rdzeniami procesora[cite: 21]. Wykorzystany w~projekcie układ SoC (ang. \textit{System on a~Chip}) Intel Agilex 5 bazuje na asymetrycznej architekturze big.LITTLE, integrując wydajne rdzenie ARM Cortex-A76 oraz energooszczędne rdzenie ARM Cortex-A55. Architektura ta stanowiła fundament do wdrożenia koncepcji AMP (ang. \textit{Asymmetric Multiprocessing}).
+Głównym założeniem architektonicznym projektu było rozdzielenie zadań pomiędzy dostępnymi rdzeniami. Wykorzystany w~projekcie układ SoC (ang. \textit{System on a~Chip}) Intel Agilex 5 bazuje na asymetrycznej architekturze big.LITTLE, integrując wydajne rdzenie ARM Cortex-A76 oraz energooszczędne rdzenie ARM Cortex-A55. Architektura ta stanowiła fundament do wdrożenia koncepcji AMP (ang. \textit{Asymmetric Multiprocessing}).
 
 \section{Podział ról w~architekturze AMP}
-W~ramach środowiska wbudowanego zaprojektowano topologię, w~której główny system operacyjny ze zintegrowaną łatą czasu rzeczywistego (PREEMPT\_RT) operuje na trzech rdzeniach (2x Cortex-A76 oraz 1x Cortex-A55). Czwarty rdzeń, będący procesorem Cortex-A55, został trwale wyizolowany i~w~pełni dedykowany do bezpośredniego wykonywania instrukcji w~trybie bare-metal, bez narzutu systemu operacyjnego.
+W~ramach środowiska wbudowanego zaprojektowano topologię, w~której główny system operacyjny oparty na jądrze Linux operuje na trzech rdzeniach (dwóch rdzeniach Cortex-A76 oraz jednym rdzeniu Cortex-A55). Czwarty rdzeń, będący fizycznie jednostką Cortex-A55, został w~pełni wyizolowany z~przestrzeni systemu operacyjnego i~dedykowany do bezpośredniego wykonywania instrukcji w~trybie bare-metal. 
+
+Aby zapewnić stabilne działanie bez narzutu systemu operacyjnego, oprogramowanie dla tego rdzenia operuje w~ściśle wydzielonym i~zarezerwowanym do tego celu obszarze pamięci RAM.
 
 % MIEJSCE NA GRAFIKĘ: Schemat blokowy SoC z~podziałem na Linux i~Bare-metal
 \begin{figure}[htbp]
@@ -15,10 +17,15 @@ W~ramach środowiska wbudowanego zaprojektowano topologię, w~której główny s
     \label{fig:arch_amp}
 \end{figure}
 
-\section{Wydzielenie rdzenia z~systemu Linux (Core Isolation)}
-Aby zapewnić przewidywalny czas wykonywania dla kodu bare-metal, system Linux musiał zostać pozbawiony kontroli nad jednym z~rdzeni CPU[cite: 22]. Zrealizowano to za pomocą argumentów linii komend jądra (np. parametr \texttt{isolcpus}), co uchroniło dany rdzeń przed standardowym planistą (ang. \textit{scheduler}) systemu operacyjnego[cite: 23]. Dodatkowo skonfigurowano odpowiednie parametry alokacji pamięci, aby jądro Linux nie nadpisywało fizycznej przestrzeni RAM, w~której znajduje się oprogramowanie układowe dla izolowanego rdzenia.
-
 \section{Mechanizmy komunikacji międzyprocesorowej (IPC)}
-Komunikacja pomiędzy systemem Linux uruchomionym na głównym klastrze rdzeni, a~kodem bare-metal działającym na rdzeniu wydzielonym, wymagała niezawodnego mechanizmu IPC (ang. \textit{Inter-Processor Communication})[cite: 24]. Wykorzystano do tego bloki pamięci współdzielonej (ang. \textit{Shared Memory}) oraz przerwania sprzętowe typu IPI (ang. \textit{Inter-Processor Interrupt})[cite: 25]. 
+Wymiana danych pomiędzy systemem operacyjnym Linux działającym na głównym klastrze, a~kodem bare-metal uruchomionym na wyizolowanym rdzeniu Cortex-A55, wymagała zaimplementowania niezawodnego mechanizmu komunikacji międzyprocesorowej (IPC, ang. \textit{Inter-Processor Communication}). W~tym celu w~głównej pamięci operacyjnej (RAM) wydzielono specjalną, wspólną strefę przeznaczoną wyłącznie do transferu danych, w~pełni odseparowaną od pamięci zarezerwowanej na wykonywanie instrukcji bare-metal.
 
-Opracowano mechanizm oparty na koncepcji \textit{zero-copy}, co pozwala na przekazywanie wskaźników do bloków danych bezpośrednio przez rejestry pocztowe lub bufory pierścieniowe, eliminując kosztowne operacje kopiowania pamięci pomiędzy domenami.
+Bezpieczny i~atomowy dostęp do współdzielonej pamięci został oparty na strukturze dwóch niezależnych buforów kołowych (ang. \textit{ring buffers}): \texttt{linux\_to\_bm} (obsługującego wyłącznie ruch od systemu Linux do aplikacji bare-metal) oraz \texttt{bm\_to\_linux} (przeznaczonego do komunikacji w~kierunku odwrotnym).
+
+Aby zagwarantować spójność danych i~wyeliminować ryzyko błędów współbieżności bez konieczności stosowania skomplikowanych mechanizmów blokujących, wprowadzono ścisły podział ról w~zarządzaniu flagami buforów:
+\begin{itemize}
+    \item \textbf{Flaga początku (ang. \textit{head}):} Może być modyfikowana wyłącznie przez nadawcę komunikatu, i~to dopiero po pomyślnym zapisaniu nowych danych w~buforze.
+    \item \textbf{Flaga końca (ang. \textit{tail}):} Może być modyfikowana wyłącznie przez odbiorcę komunikatu, natychmiast po odczytaniu i~przetworzeniu paczki danych.
+\end{itemize}
+
+Dzięki takiej architekturze żaden z~podsystemów operujących w~konfiguracji AMP nigdy nie próbuje modyfikować tej samej zmiennej w~tym samym czasie. Eliminuje to wszelkie konflikty dostępowe i~pozwala na wysoce wydajną, bezkolizyjną pracę całego układu.

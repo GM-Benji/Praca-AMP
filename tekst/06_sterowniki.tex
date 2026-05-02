@@ -1,12 +1,15 @@
 \chapter{Sterowniki urządzeń w~systemie Linux}
 \label{ch:sterowniki}
 
-Aby system operacyjny mógł korzystać z~zaprojektowanych komponentów sprzętowych oraz wymieniać dane z~rdzeniem pomocniczym, stworzono dedykowane moduły jądra (ang. \textit{Kernel Modules})[cite: 18]. W~szczególności skupiono się na autorskim sterowniku nadzorczym o~nazwie \texttt{wake\_a55.ko}.
+Aby system operacyjny mógł w~pełni wykorzystać zaprojektowane komponenty sprzętowe oraz bezpiecznie wymieniać dane z~wyizolowanym rdzeniem pomocniczym, konieczne było zastosowanie dedykowanych modułów jądra (ang. \textit{Kernel Modules}). W~ramach projektu skupiono się na obsłudze zewnętrznych układów peryferyjnych oraz na implementacji autorskiego sterownika nadzorczego \texttt{wake\_a55.ko}.
 
-\section{Implementacja modułu jądra zarządzającego AMP}
-Sterownik został napisany w~języku C z~wykorzystaniem frameworków dostarczanych przez jądro Linux[cite: 19]. Jego podstawowym zadaniem jest przygotowanie wyizolowanego środowiska dla oprogramowania bare-metal oraz inicjacja wektora resetu dla rdzenia Cortex-A55.
+\section{Zewnętrzne moduły urządzeń peryferyjnych}
+Zarządzanie temperaturą układu SoC realizowane jest za pomocą sprzętowego kontrolera AMC6821. Ze względów bezpieczeństwa i~stabilności systemu, sterownik tego układu został skompilowany za pomocą systemu Kconfig jako zewnętrzny, ładowalny moduł jądra (plik \texttt{.ko}), a~nie jako komponent wbudowany bezpośrednio w~obraz jądra (ang. \textit{built-in}). Takie podejście gwarantuje, że w~przypadku ewentualnego błędu w~komunikacji z~układem na magistrali I2C, awarii ulegnie jedynie wyizolowany moduł, co zapobiegnie krytycznemu błędowi całego systemu operacyjnego (ang. \textit{Kernel Panic}).
 
-Sterownik jest odpowiedzialny za mapowanie odpowiednich przestrzeni adresowych przy pomocy funkcji \texttt{ioremap} i~obsługę zgłoszeń (przerwań)[cite: 20]. Zaimplementowano dynamiczne tworzenie wpisów w~wirtualnym systemie plików \texttt{sysfs}, eksponując interfejs użytkowy w~katalogu \texttt{/sys/kernel/baremetal/}.
+\section{Autorski moduł zarządzający architekturą AMP}
+Kluczowym elementem oprogramowania integrującego system Linux z~wyizolowanym rdzeniem Cortex-A55 jest autorski sterownik \texttt{wake\_a55.ko}, napisany w~języku C. Jego głównym zadaniem jest zarządzanie cyklem życia aplikacji bare-metal oraz realizacja dostępu do mechanizmów komunikacji międzyprocesorowej (IPC) z~poziomu przestrzeni użytkownika systemu Linux.
+
+Sterownik ten stanowi programistyczne rozwinięcie koncepcji architektonicznych opisanych w~poprzednich rozdziałach. Odpowiada on za mapowanie odpowiednich fizycznych przestrzeni adresowych (zarezerwowanych wcześniej w~drzewie urządzeń) do wirtualnej przestrzeni jądra przy pomocy funkcji \texttt{ioremap\_wc}. Umożliwia to bezpośredni dostęp do wspólnej pamięci RAM oraz struktury niezależnych buforów kołowych.
 
 % MIEJSCE NA GRAFIKĘ: Architektura sterownika i~warstwy użytkownika
 \begin{figure}[htbp]
@@ -17,21 +20,63 @@ Sterownik jest odpowiedzialny za mapowanie odpowiednich przestrzeni adresowych p
     \label{fig:sysfs_driver}
 \end{figure}
 
-\section{Interfejs użytkowy i~ładowanie firmware}
-Zaprojektowany interfejs plikowy pozwala na bezproblemową interakcję z~rdzeniem pomocniczym bezpośrednio z~poziomu powłoki (CLI) systemu wbudowanego. Plik wykonywalny przestrzeni użytkownika (np. skrypt startowy) kopiuje skompilowany plik \texttt{.bin} do wyeksponowanego węzła \texttt{fw}, a~następnie uaktywnia jednostkę obliczeniową.
+\section{Interfejs wirtualnego systemu plików sysfs}
+Komunikacja ze sterownikiem realizowana jest poprzez dynamicznie tworzone wpisy w~wirtualnym systemie plików \texttt{sysfs}, wyeksponowane w~katalogu \texttt{/sys/kernel/baremetal/}. Mechanizm ten eliminuje konieczność kompilowania dodatkowych programów przestrzeni użytkownika (np. opartych na wywołaniach \texttt{ioctl}) i~udostępnia następujące funkcjonalności:
+\begin{itemize}
+    \item \textbf{Wgrywanie oprogramowania:} Przesłanie skompilowanego pliku binarnego do węzła \texttt{fw} powoduje przekopiowanie kodu bezpośrednio do wydzielonej pamięci RAM rdzenia bare-metal.
+    \item \textbf{Wybudzanie rdzenia:} Zapis do węzła \texttt{wake} inicjuje wywołanie systemowe \texttt{SMC} (ang. \textit{Secure Monitor Call}), które sprzętowo wybudza wyizolowany rdzeń Cortex-A55 i~rozpoczyna wykonywanie wgranego na niego kodu.
+    \item \textbf{Komunikacja IPC:} Węzły \texttt{cmd} oraz \texttt{log} pozwalają odpowiednio na bezkolizyjne wysyłanie poleceń oraz odczytywanie odpowiedzi poprzez bufory kołowe.
+\end{itemize}
 
-\begin{lstlisting}[language=bash, caption={Zarządzanie rdzeniem za pomocą wywołań wirtualnego systemu plików sysfs}, label={lst:sysfs_usage}]
-# Zazaladowanie pliku z~logiką bare-metal do zarezerwowanej pamięci
-cat baremetal_a55.bin > /sys/kernel/baremetal/fw
+Poniżej przedstawiono najważniejsze fragmenty kodu źródłowego sterownika, obrazujące definicję współdzielonych struktur pamięci oraz implementację funkcji wprowadzających logikę aplikacji bare-metal do pamięci RAM i~wybudzających rdzeń.
 
-# Wybudzenie czwartego rdzenia (Cortex-A55)
-echo 1 > /sys/kernel/baremetal/wake
+\begin{lstlisting}[language=C, caption={Fragmenty kodu sterownika wake\_a55.ko odpowiedzialne za definicję buforów IPC, ładowanie firmware'u oraz wybudzanie rdzenia}, label={lst:wake_a55}]
+#include <linux/module.h>
+#include <linux/kobject.h>
+#include <linux/sysfs.h>
+#include <linux/io.h>
+#include <linux/arm-smccc.h>
 
-# Wysłanie komendy testowej poprzez kanał zero-copy IPC
-echo "HELLO_AGILEX" > /sys/kernel/baremetal/cmd
+// --- DEFINICJE STRUKTURY PAMIĘCI (Musi pasować do Bare Metalu) ---
+#define RING_BUFFER_SIZE 1024
 
-# Odczyt logów i~odpowiedzi z~rdzenia bare-metal
-cat /sys/kernel/baremetal/log
+typedef struct {
+    volatile uint32_t head;
+    volatile uint32_t tail;
+    volatile uint8_t data[RING_BUFFER_SIZE];
+} RingBuffer;
+
+typedef struct {
+    RingBuffer linux_to_bm;
+    RingBuffer bm_to_linux;
+} SharedMemoryMap;
+// -----------------------------------------------------------------
+
+// 1. Zapisywanie pliku .bin do RAM-u
+static ssize_t fw_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
+    void __iomem *code_map = ioremap_wc(0xA0100000, count);
+    if (!code_map) return -ENOMEM;
+    memcpy_toio(code_map, buf, count);
+    iounmap(code_map);
+    pr_info("Wgrano %zu bajtow firmware'u pod adres 0xA0100000\n", count);
+    return count;
+}
+static struct kobj_attribute fw_attr = __ATTR_WO(fw);
+
+// 2. Budzenie rdzenia na żądanie
+static ssize_t wake_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
+    struct arm_smccc_res res;
+    arm_smccc_smc(0xC4000003, 0x101, 0xA0100000, 0, 0, 0, 0, 0, &res);
+    pr_info("SMC Wake (Rdzen 0x101): %ld\n", res.a0);
+    return count;
+}
+static struct kobj_attribute wake_attr = __ATTR_WO(wake);
 \end{lstlisting}
 
-Mechanizm \texttt{sysfs} eliminuje konieczność kompilowania dodatkowych programów przestrzeni użytkownika (np. opartych na wywołaniach \texttt{ioctl}), gwarantując wysoką przenośność oraz łatwość debugowania logiki IPC działającej po drugiej stronie architektury asymetrycznej.
+\section{Zintegrowany potok budowania (Workflow)}
+
+Proces deweloperski oprogramowania niskopoziomowego wymaga częstych iteracji i~testowania wprowadzanych zmian. Ponieważ autorski sterownik zarządzający architekturą AMP jest ściśle powiązany z~odpowiednią konfiguracją sprzętową w~drzewie urządzeń, proces ich kompilacji został zautomatyzowany i~połączony.
+
+W~celu ułatwienia zarządzania kodem i~przyspieszenia kompilacji, utworzono dedykowane repozytorium dostępne pod adresem: \url{https://github.com/GM-Benji/agilex5-linux-amp.git}. 
+
+Centralnym elementem tego repozytorium jest zunifikowany plik \texttt{Makefile}, który integruje budowanie modułu jądra (\texttt{wake\_a55.ko}) oraz kompilację drzewa urządzeń (do formatu \texttt{.dtb}) w~ramach jednego polecenia. Skrypt ten automatycznie wykorzystuje zmienne środowiskowe zdefiniowane w~głównym środowisku kompilacji skrośnej (wskazujące na zmodyfikowane źródła jądra \texttt{linux-socfpga}), co eliminuje ryzyko rozbieżności wersji pomiędzy skompilowanym systemem, sterownikiem a~opisem sprzętowym. Takie podejście znacząco usprawnia przepływ pracy (ang. \textit{workflow}) i~minimalizuje ryzyko błędów ludzkich podczas ręcznego budowania poszczególnych komponentów.

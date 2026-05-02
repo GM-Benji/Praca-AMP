@@ -1,12 +1,22 @@
 \chapter{Opis sprzętowy i~drzewo urządzeń (Device Tree)}
 \label{ch:sprzet_dtb}
 
-W nowoczesnych systemach osadzonych opartych na architekturze ARM, informacja o~fizycznie podłączonych peryferiach jest przekazywana do jądra operacyjnego w~postaci struktury zwanej drzewem urządzeń (ang. \textit{Device Tree})[cite: 12]. Stanowi ono sprzętową mapę, która uniezależnia kod skompilowanego jądra od konkretnej topologii płyty bazowej.
+W~nowoczesnych systemach osadzonych opartych na architekturze ARM, informacja o~fizycznie podłączonych peryferiach jest przekazywana do jądra operacyjnego w~postaci struktury zwanej drzewem urządzeń (ang. \textit{Device Tree}). Stanowi ono sprzętową mapę, która uniezależnia kod skompilowanego jądra od konkretnej topologii płyty bazowej.
 
-\section{Struktura pliku DTS i~rezerwacja pamięci}
-Na potrzeby projektu utworzono i~zmodyfikowano pliki źródłowe \texttt{.dts} i~\texttt{.dtsi}[cite: 13]. W~pliku nadrzędnym \texttt{socfpga\_agilex5\_de25\_nano.dts} zadeklarowano włączenie (\textit{include}) plików bazowych dla SoC Agilex 5. 
+Kompletny i~szczegółowy opis całego sprzętu dostarczany jest zazwyczaj przez producenta układu w~postaci bazowych plików z~rozszerzeniem \texttt{.dtsi}, które stanowią integralną część środowiska budowania jądra. Na potrzeby opisywanego projektu utworzono własny, nadrzędny plik \texttt{socfpga\_agilex5\_de25\_nano.dts}, w~którym za pomocą dyrektywy \texttt{\#include} dołączono wspomniane pliki bazowe. Takie podejście pozwala zachować pełną definicję sprzętu, a~następnie selektywnie nadpisać i~zmodyfikować jedynie te parametry, które są istotne dla specyfiki projektu.
 
-Kluczowym elementem implementacji było utworzenie węzła \texttt{/reserved-memory}. Opisano w~nich m.in. zarezerwowane obszary pamięci dla rdzenia bare-metal[cite: 13]. Przestrzeń ta została całkowicie wyłączona z~puli dostępnej dla alokatora pamięci jądra systemu Linux. 
+Głównym celem stworzenia autorskiego opisu sprzętowego było wyłączenie określonych zasobów z~pul dostępnych dla systemu operacyjnego Linux. Było to niezbędne, aby przekazać wyłączną kontrolę nad tymi elementami oprogramowaniu bare-metal oraz mechanizmom komunikacji IPC.
+
+\section{Izolacja rdzenia i~rezerwacja pamięci}
+Podstawową modyfikacją w~strukturze drzewa urządzeń była zmiana statusu jednego z~rdzeni procesora (Cortex-A55). Węzeł opisujący ten rdzeń został celowo nadpisany w~taki sposób, aby jądro Linux zignorowało go podczas procedury startowej (tzw. \textit{core isolation}). Pozwoliło to na wydzielenie jednostki obliczeniowej dedykowanej wyłącznie do wykonywania niskopoziomowego kodu bare-metal.
+
+Równie istotnym krokiem było zdefiniowanie węzła \texttt{/reserved-memory}. Zadeklarowano w~nim obszary fizycznej pamięci RAM, które zostały podzielone na dwie kluczowe strefy:
+\begin{itemize}
+    \item obszar na instrukcje oraz lokalne dane operacyjne dla kodu bare-metal,
+    \item oddzielny obszar przeznaczony na bufory komunikacyjne IPC (niezbędne do bezpiecznej wymiany danych z~głównym systemem).
+\end{itemize}
+
+Każda z~tych przestrzeni została oznaczona w~drzewie urządzeń specjalną flagą \texttt{no-map}. Powoduje to, że zdefiniowane adresy są całkowicie wyłączone z~zarządzania przez alokator pamięci systemu Linux, co eliminuje ryzyko nadpisania krytycznych danych bare-metal lub buforów kołowych przez procesy systemu operacyjnego.
 
 \begin{lstlisting}[language=C, caption={Przykładowy fragment deklaracji przestrzeni reserved-memory}, label={lst:dts_mem}]
 reserved-memory {
@@ -22,7 +32,7 @@ reserved-memory {
 \end{lstlisting}
 
 \section{Konfiguracja magistrali I2C}
-Drzewo urządzeń posłużyło również do inicjalizacji układów peryferyjnych na platformie Terasic DE25-Nano. Dokonano modyfikacji odpowiedniego węzła magistrali I2C w~celu uwzględnienia układu AMC6821. Dzięki temu, wbudowany w~jądro sterownik mógł automatycznie rozpoznać układ pod zdefiniowanym adresem sprzętowym i~utworzyć dowiązania w~podsystemie \texttt{hwmon} do sterowania chłodzeniem SoC.
+Drzewo urządzeń posłużyło również do inicjalizacji dodatkowych układów peryferyjnych znajdujących się na platformie ewaluacyjnej Terasic DE25-Nano. Dokonano modyfikacji odpowiedniego węzła magistrali I2C w~celu zadeklarowania obecności układu AMC6821. Dzięki takiemu wpisowi, wbudowany w~jądro sterownik mógł automatycznie rozpoznać układ pod zdefiniowanym adresem sprzętowym i~utworzyć dowiązania w~podsystemie \texttt{hwmon}, co umożliwiło poprawne sterowanie chłodzeniem SoC.
 
 \section{Kompilacja urządzenia do formatu DTB}
-Plik źródłowy został skompilowany za pomocą narzędzia \texttt{dtc} do binarnej postaci \texttt{.dtb} (ang. \textit{Device Tree Blob}), która jest odczytywana przez bootloader na wczesnym etapie startu urządzenia[cite: 14]. W~ramach zautomatyzowanego potoku budowania w~głównym pliku \texttt{Makefile}, proces ten zintegrowano z~preprocesorem języka C (\texttt{cpp}), co umożliwiło poprawne rozwijanie dyrektyw \texttt{\#include} przed ostatecznym generowaniem formatu binarnego.
+Plik źródłowy został skompilowany za pomocą narzędzia \texttt{dtc} (ang. \textit{Device Tree Compiler}) do binarnej postaci \texttt{.dtb} (ang. \textit{Device Tree Blob}). Plik ten jest niezbędny na wczesnym etapie startu urządzenia, gdzie odczytuje go program rozruchowy (bootloader). W~ramach zautomatyzowanego potoku budowania opartego na pliku \texttt{Makefile}, proces kompilacji zintegrowano z~preprocesorem języka C (\texttt{cpp}), co umożliwiło poprawne rozwinięcie wspomnianych dyrektyw \texttt{\#include} przed ostatecznym wygenerowaniem formatu binarnego.

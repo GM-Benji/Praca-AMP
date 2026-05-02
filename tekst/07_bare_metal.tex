@@ -1,10 +1,71 @@
 \chapter{Oprogramowanie bez systemu operacyjnego (Bare-metal)}
 \label{ch:bare_metal}
 
-Na wydzielonym wcześniej rdzeniu procesora wykonuje się krytyczny czasowo kod aplikacji. Działa on całkowicie niezależnie, z~bezpośrednim dostępem do sprzętu, nie ponosząc narzutu wynikającego z~zarządzania wątkami czy pamięcią wirtualną przez system Linux.
+Na wyizolowanym uprzednio rdzeniu procesora (Cortex-A55) wykonuje się krytyczny czasowo kod aplikacji w~trybie bare-metal. Działa on całkowicie niezależnie, posiadając bezpośredni dostęp do zasobów sprzętowych. Rozwiązanie to całkowicie eliminuje narzut wydajnościowy (ang. \textit{overhead}) wynikający z~zarządzania wątkami, planowania procesów (ang. \textit{scheduling}) czy obsługi pamięci wirtualnej przez system operacyjny Linux.
+
+Pełny kod źródłowy aplikacji bare-metal opracowanej na potrzeby niniejszej pracy dostępny jest w~publicznym repozytorium pod adresem: \url{https://github.com/GM-Benji/agilex-bare-metal.git}.
 
 \section{Punkt wejścia i~inicjalizacja}
-Napisano kod startowy w~asemblerze, który odpowiada za ustawienie wskaźnika stosu oraz wektorów przerwań, po czym przekazuje sterowanie do funkcji głównej zaimplementowanej w~języku C.
+Uruchomienie rdzenia następuje poprzez wywołanie sprzętowe wektora resetu. Pierwszym etapem jest wykonanie niskopoziomowego kodu startowego (napisanego w~języku asembler), który odpowiada za fundamentalną konfigurację sprzętową: poprawne ustawienie wskaźnika stosu (ang. \textit{Stack Pointer}) oraz inicjalizację tablicy wektorów przerwań. Następnie sterowanie jest przekazywane do głównej funkcji programu (\texttt{main}), zaimplementowanej w~języku C.
 
-\section{Pętla główna i~wymiana danych}
-Wątek główny aplikacji okresowo próbkuje wejścia sprzętowe oraz odczytuje komendy przesyłane z~systemu operacyjnego poprzez obszar współdzielonej pamięci.
+Zanim aplikacja przejdzie do nasłuchiwania poleceń, realizowana jest faza inicjalizacji pamięci współdzielonej (IPC). Kod bare-metal proaktywnie zeruje cały blok pamięci RAM przeznaczony na bufory kołowe, co zapobiega interpretacji przypadkowych, resztkowych danych w~pamięci jako błędnych poleceń od systemu Linux. Następnie resetowane są wewnętrzne wskaźniki buforów (\texttt{head} oraz \texttt{tail}).
+
+\section{Pętla główna i~wymiana danych IPC}
+Wymiana informacji z~głównym systemem operacyjnym opiera się na koncepcji asynchronicznego odpytywania (ang. \textit{polling}). Główna pętla aplikacji cyklicznie sprawdza stan niezależnych buforów kołowych, co stanowi bezpośrednie odzwierciedlenie mechanizmów opisanych w~rozdziale dotyczącym architektury systemu.
+
+Aby zrealizować bezkolizyjny odczyt, rdzeń bare-metal monitoruje bufor \texttt{linux\_to\_bm}. Jeśli wartość flagi nadawczej \texttt{head} (kontrolowanej przez Linux) jest różna od wartości flagi odbiorczej \texttt{tail} (kontrolowanej przez bare-metal), oznacza to pojawienie się nowych danych. Po odczytaniu paczki danych, kod przesuwa wskaźnik \texttt{tail}, informując tym samym nadawcę o~zwolnieniu miejsca w~buforze. W~odpowiedzi aplikacja formułuje i~odsyła komunikat zwrotny (ang. \textit{echo}) poprzez bliźniaczy bufor \texttt{bm\_to\_linux}.
+
+\begin{lstlisting}[language=C, caption={Główna pętla asynchroniczna aplikacji bare-metal nasłuchująca poleceń z~systemu Linux}, label={lst:bm_main}]
+// Główna pętla asynchroniczna
+while (1) {
+    // Sprawdzamy, czy wskaźnik nadawczy Linuksa uciekł do przodu
+    if (shared_ram->linux_to_bm.head != shared_ram->linux_to_bm.tail) {
+        
+        // Odczytujemy paczkę danych z~bufora
+        int bytes_read = read_from_ring(&shared_ram->linux_to_bm, 
+                                        rx_buffer, 
+                                        sizeof(rx_buffer) - 1);
+        
+        if (bytes_read > 0) {
+            rx_buffer[bytes_read] = '\0'; // Znak końca tekstu
+            
+            // Odsyłamy Echo z~powrotem do Linuksa, jako dowód odebrania
+            const char *reply = "BM ODEBRAL: ";
+            write_to_ring(&shared_ram->bm_to_linux, (const uint8_t *)reply, 12);
+            write_to_ring(&shared_ram->bm_to_linux, rx_buffer, bytes_read);
+            
+            // Obsługa i~dekodowanie odebranych poleceń sterujących...
+        }
+    }
+}
+\end{lstlisting}
+
+\section{Bariery pamięci w~architekturze wielordzeniowej}
+Niezwykle istotnym aspektem implementacji komunikacji \textit{lock-free} (bez użycia muteksów czy semaforów) w~systemach opartych na architekturze ARM jest zarządzanie spójnością pamięci podręcznej. Z~uwagi na to, że rdzenie mogą w~sposób niezależny optymalizować i~zmieniać kolejność wykonywania instrukcji zapisu, wprowadzono sprzętowe bariery pamięci (ang. \textit{Data Memory Barrier}).
+
+W~napisanych funkcjach obsługujących zapis i~odczyt (\texttt{write\_to\_ring} oraz \texttt{read\_from\_ring}) wykorzystano asemblerową instrukcję \texttt{dmb sy}. Gwarantuje ona, że bajt danych fizycznie dotrze do współdzielonej pamięci RAM \textit{zanim} zaktualizowana zostanie wartość flagi \texttt{head} lub \texttt{tail}. Zapobiega to krytycznym błędom współbieżności, w~których odbiorca mógłby zareagować na przesunięcie wskaźnika, zanim faktyczny komunikat zostałby fizycznie utrwalony na magistrali pamięci.
+
+\begin{lstlisting}[language=C, caption={Wykorzystanie barier pamięci (DMB) podczas zapisu do bufora kołowego}, label={lst:bm_ring}]
+int write_to_ring(RingBuffer *rb, const uint8_t *buffer, uint32_t length) {
+    uint32_t next_head;
+    uint32_t i;
+
+    for (i = 0; i~< length; i++) {
+        next_head = (rb->head + 1) % RING_BUFFER_SIZE;
+        if (next_head == rb->tail) { break; /* Bufor pełny */ }
+        
+        rb->data[rb->head] = buffer[i];
+        
+        // BARIERA 1: Upewnij się, że dane dotarły do RAM, 
+        // zanim przesuniemy wskaźnik head.
+        __asm__ volatile ("dmb sy" : : : "memory");
+        
+        rb->head = next_head;
+        
+        // BARIERA 2: Upewnij się, że nowa wartość head dotarła do RAM,
+        // żeby Linux natychmiast zauważył nową porcję danych.
+        __asm__ volatile ("dmb sy" : : : "memory");
+    }
+    return i; 
+}
+\end{lstlisting}
