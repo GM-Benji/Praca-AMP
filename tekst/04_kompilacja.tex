@@ -17,7 +17,6 @@ Proces konfiguracji jądra (Kconfig) został przeprowadzony w~celu włączenia o
 Proces budowania obrazu \texttt{Image} jest realizowany przy pomocy narzędzi do kompilacji skrośnej (ang. \textit{cross-compilation toolchain}) dla architektury ARM64 (\texttt{aarch64-linux-gnu-gcc}). Aby zapewnić spójność środowiska budowania, główne zmienne systemowe definiujące ścieżki i~narzędzia ujęto bezpośrednio w~głównym pliku \texttt{Makefile} projektu:
 
 \begin{lstlisting}[language=make, caption={Fragment pliku Makefile definujący zmienne dla kompilacji skrośnej}, label={lst:makefile_cross}]
-# Zmienne środowiskowe dla architektury ARM64
 export ARCH ?= arm64
 export CROSS_COMPILE ?= aarch64-linux-gnu-
 
@@ -27,11 +26,9 @@ export INCLUDE_DTS := $(KDIR)/arch/arm64/boot/dts/intel
 
 Wyeksportowanie zmiennej \texttt{KDIR} wskazującej na zmodyfikowane i~skompilowane źródła jądra jest kluczowe dla dalszych etapów projektu. Pozwala to na bezpośrednie i~bezkonfliktowe budowanie własnych, zewnętrznych modułów jądra (sterowników \texttt{.ko}) oraz kompilację drzewa urządzeń (ang. \textit{Device Tree}, pliki \texttt{.dtb}), gwarantując, że zostaną one skonsolidowane z~dokładnie tym samym wydaniem jądra, które zostanie uruchomione na platformie docelowej.
 
-% MIEJSCE NA GRAFIKĘ: Diagram przepływu procesu kompilacji
 \begin{figure}[htbp]
     \centering
-    % \includegraphics[width=0.8\textwidth]{rysunki/proces_kompilacji.png}
-    \vspace{5cm} % Usunąć po dodaniu grafiki
-    \caption{[MIEJSCE NA RYSUNEK] Schemat przepływu procesu kompilacji (od źródeł C do plików wykonywalnych obrazu jądra i~modułów).}
-    \label{fig:kompilacja_flow}
+    \includegraphics[width=0.75\textwidth]{rysunki/kconfig.png} % Dostosuj ścieżkę do swojego pliku
+    \caption{Widok interfejsu narzędzia \texttt{menuconfig} przedstawiający aktywację w~pełni wywłaszczalnego jądra czasu rzeczywistego (łata PREEMPT\_RT).}
+    \label{fig:kconfig_rt}
 \end{figure}

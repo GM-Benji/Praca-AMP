@@ -1,7 +1,7 @@
 \chapter{Przygotowanie stanowiska pracy i~infrastruktury}
 \label{ch:stanowisko}
 
-Rozwój oprogramowania dla złożonych systemów wbudowanych wymaga zorganizowania niezawodnego, elastycznego oraz bezpiecznego stanowiska pracy. W~niniejszym rozdziale zaprezentowano architekturę środowiska programistycznego, w~tym konfigurację serwera kompilacyjnego, topologię sieciową umożliwiającą dostęp zdalny, mechanizmy zarządzania zasilaniem oraz interfejsy komunikacyjne wykorzystywane do obsługi platformy sprzętowej.
+Rozwój oprogramowania dla złożonych systemów wbudowanych wymaga zorganizowania, elastycznego oraz bezpiecznego stanowiska pracy. W~niniejszym rozdziale zaprezentowano architekturę środowiska programistycznego, w~tym konfigurację serwera kompilacyjnego, topologię sieciową umożliwiającą dostęp zdalny, mechanizmy zarządzania zasilaniem oraz interfejsy komunikacyjne wykorzystywane do obsługi platformy sprzętowej.
 
 \section{Infrastruktura serwerowa i~dostęp zdalny}
 Centralnym elementem stanowiska jest serwer kompilacyjny działający pod kontrolą systemu operacyjnego Ubuntu Server LTS. Zapewnia on przestrzeń roboczą oraz moc obliczeniową niezbędną do budowania obrazów systemu operacyjnego i~kompilacji oprogramowania dla architektury docelowej. 
@@ -15,13 +15,13 @@ W~celu zautomatyzowania procesu testowania oraz umożliwienia w~pełni zdalnej p
 
 Aby ułatwić kontrolę nad stanem zasilania bezpośrednio z~poziomu konsoli serwera, w~pliku konfiguracyjnym powłoki (\texttt{.bashrc}) zdefiniowano skróty (aliasy) wykorzystujące narzędzie \texttt{curl} do wysyłania odpowiednich żądań HTTP. Przygotowano następujące polecenia:
 \begin{itemize}
-    \item \texttt{socPowerOn} -- uruchomienie zasilania platformy (wywołanie: \texttt{curl -s http://192.168.0.150/relay/0?turn=on}),
-    \item \texttt{socPowerOff} -- odcięcie zasilania platformy (wywołanie: \texttt{curl -s http://192.168.0.150/relay/0?turn=off}),
-    \item \texttt{socPowerCheck} -- odczyt aktualnego stanu przekaźnika (wywołanie: \texttt{curl -s http://192.168.0.150/relay/0}).
+    \item \texttt{socPowerOn} -- uruchomienie zasilania platformy (wywołanie: \texttt{curl -s} \url{http://192.168.0.150/relay/0?turn=on}),
+    \item \texttt{socPowerOff} -- odcięcie zasilania platformy (wywołanie: \texttt{curl -s} \url{http://192.168.0.150/relay/0?turn=off}),
+    \item \texttt{socPowerCheck} -- odczyt aktualnego stanu przekaźnika (wywołanie: \texttt{curl -s} \url{http://192.168.0.150/relay/0}).
 \end{itemize}
 Rozwiązanie to pozwala na bezinwazyjny, sprzętowy restart układu (ang. \textit{hard reset}), co jest kluczowe w~przypadku krytycznego błędu lub zawieszenia się testowanego systemu operacyjnego na platformie docelowej.
 
 \section{Komunikacja z~układem SoC i~interfejsy dostępowe}
-Płytka ewaluacyjna jest fizycznie połączona z~serwerem kompilacyjnym za pomocą kabla sieciowego (RJ45) oraz przewodu komunikacyjnego w~standardzie USB-C. Nawiązywanie standardowego połączenia sieciowego (SSH) bezpośrednio z~systemem uruchomionym na płytce jest jednak znacznie utrudnione. Ze względu na specyfikę konfiguracji systemu na platformie docelowej, przy każdym cyklu uruchamiania (ang. \textit{boot}) interfejs sieciowy generuje nowy, losowy adres MAC. Zapobiega to stałemu przypisaniu adresu IP przez serwer DHCP, co z~kolei uniemożliwia niezawodną identyfikację urządzenia w~sieci lokalnej.
+Płytka ewaluacyjna jest fizycznie połączona z~serwerem kompilacyjnym za pomocą kabla sieciowego (RJ45) oraz przewodu komunikacyjnego w~standardzie USB-C. Nawiązywanie standardowego połączenia sieciowego (SSH) bezpośrednio z~systemem uruchomionym na płytce jest jednak znacznie utrudnione. Ze względu na specyfikę konfiguracji systemu na platformie docelowej, przy każdym cyklu uruchamiania (ang. \textit{boot}) interfejs sieciowy generuje nowy, losowy adres MAC. Zapobiega to stałemu przypisaniu adresu IP przez serwer DHCP, co z~kolei uniemożliwia identyfikację urządzenia w~sieci lokalnej.
 
 Z~tego względu głównym kanałem komunikacji z~terminalem systemu Linux działającego na procesorze HPS (ang. \textit{Hard Processor System}) jest niskopoziomowa komunikacja szeregowa (UART). Połączenie to jest realizowane za pośrednictwem zintegrowanego na platformie interfejsu USB Blaster~III. Do obsługi wirtualnego portu szeregowego po stronie serwera kompilacyjnego wykorzystano aplikację \texttt{picocom}. Rozwiązanie to pozwala na stabilną interakcję z~powłoką systemu docelowego oraz na monitorowanie logów diagnostycznych już od najwcześniejszego etapu uruchamiania systemu (działania programu rozruchowego), gwarantując dostęp do układu całkowicie niezależny od konfiguracji jego stosu sieciowego.

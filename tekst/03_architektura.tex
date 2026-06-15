@@ -11,14 +11,13 @@ Aby zapewnić stabilne działanie bez narzutu systemu operacyjnego, oprogramowan
 % MIEJSCE NA GRAFIKĘ: Schemat blokowy SoC z~podziałem na Linux i~Bare-metal
 \begin{figure}[htbp]
     \centering
-    % \includegraphics[width=0.8\textwidth]{rysunki/architektura_amp.png}
-    \vspace{5cm} % Usunąć po dodaniu grafiki
-    \caption{[MIEJSCE NA RYSUNEK] Schemat logiczny podziału rdzeni układu Agilex 5 w~konfiguracji AMP.}
+    \includegraphics[width=0.8\textwidth]{rysunki/rys1.png}
+    \caption{ Schemat logiczny podziału rdzeni układu Agilex 5 w~konfiguracji AMP.}
     \label{fig:arch_amp}
 \end{figure}
 
 \section{Mechanizmy komunikacji międzyprocesorowej (IPC)}
-Wymiana danych pomiędzy systemem operacyjnym Linux działającym na głównym klastrze, a~kodem bare-metal uruchomionym na wyizolowanym rdzeniu Cortex-A55, wymagała zaimplementowania niezawodnego mechanizmu komunikacji międzyprocesorowej (IPC, ang. \textit{Inter-Processor Communication}). W~tym celu w~głównej pamięci operacyjnej (RAM) wydzielono specjalną, wspólną strefę przeznaczoną wyłącznie do transferu danych, w~pełni odseparowaną od pamięci zarezerwowanej na wykonywanie instrukcji bare-metal.
+Wymiana danych pomiędzy systemem operacyjnym Linux działającym na głównym klastrze, a~kodem bare-metal uruchomionym na wyizolowanym rdzeniu Cortex-A55, wymagała zaimplementowania mechanizmu komunikacji międzyprocesorowej (IPC, ang. \textit{Inter-Processor Communication}). W~tym celu w~głównej pamięci operacyjnej (DRAM) wydzielono specjalną, wspólną strefę przeznaczoną wyłącznie do transferu danych, w~pełni odseparowaną od pamięci zarezerwowanej na wykonywanie instrukcji bare-metal.
 
 Bezpieczny i~atomowy dostęp do współdzielonej pamięci został oparty na strukturze dwóch niezależnych buforów kołowych (ang. \textit{ring buffers}): \texttt{linux\_to\_bm} (obsługującego wyłącznie ruch od systemu Linux do aplikacji bare-metal) oraz \texttt{bm\_to\_linux} (przeznaczonego do komunikacji w~kierunku odwrotnym).
 

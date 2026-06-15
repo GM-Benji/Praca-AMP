@@ -9,35 +9,27 @@ Zarządzanie temperaturą układu SoC realizowane jest za pomocą sprzętowego k
 \section{Autorski moduł zarządzający architekturą AMP}
 Kluczowym elementem oprogramowania integrującego system Linux z~wyizolowanym rdzeniem Cortex-A55 jest autorski sterownik \texttt{wake\_a55.ko}, napisany w~języku C. Jego głównym zadaniem jest zarządzanie cyklem życia aplikacji bare-metal oraz realizacja dostępu do mechanizmów komunikacji międzyprocesorowej (IPC) z~poziomu przestrzeni użytkownika systemu Linux.
 
-Sterownik ten stanowi programistyczne rozwinięcie koncepcji architektonicznych opisanych w~poprzednich rozdziałach. Odpowiada on za mapowanie odpowiednich fizycznych przestrzeni adresowych (zarezerwowanych wcześniej w~drzewie urządzeń) do wirtualnej przestrzeni jądra przy pomocy funkcji \texttt{ioremap\_wc}. Umożliwia to bezpośredni dostęp do wspólnej pamięci RAM oraz struktury niezależnych buforów kołowych.
+Sterownik ten stanowi programistyczne rozwinięcie koncepcji architektonicznych opisanych w~poprzednich rozdziałach. Odpowiada on za mapowanie odpowiednich fizycznych przestrzeni adresowych (zarezerwowanych wcześniej w~drzewie urządzeń) do wirtualnej przestrzeni jądra przy pomocy funkcji \texttt{ioremap\_wc}. Umożliwia to bezpośredni dostęp do wspólnej pamięci DRAM oraz struktury niezależnych buforów kołowych.
 
 % MIEJSCE NA GRAFIKĘ: Architektura sterownika i~warstwy użytkownika
 \begin{figure}[htbp]
     \centering
-    % \includegraphics[width=0.8\textwidth]{rysunki/sysfs_driver.png}
-    \vspace{5cm} % Usunąć po dodaniu grafiki
-    \caption{[MIEJSCE NA RYSUNEK] Model współdzielenia danych i~komunikacji pomiędzy procesem przestrzeni użytkownika, sterownikiem wake\_a55 a~fizycznym rdzeniem.}
+    \includegraphics[width=0.8\textwidth]{rysunki/rys3.png}
+    \caption{ Model współdzielenia danych i~komunikacji pomiędzy procesem przestrzeni użytkownika, sterownikiem wake\_a55 a~fizycznym rdzeniem.}
     \label{fig:sysfs_driver}
 \end{figure}
 
 \section{Interfejs wirtualnego systemu plików sysfs}
-Komunikacja ze sterownikiem realizowana jest poprzez dynamicznie tworzone wpisy w~wirtualnym systemie plików \texttt{sysfs}, wyeksponowane w~katalogu \texttt{/sys/kernel/baremetal/}. Mechanizm ten eliminuje konieczność kompilowania dodatkowych programów przestrzeni użytkownika (np. opartych na wywołaniach \texttt{ioctl}) i~udostępnia następujące funkcjonalności:
+Komunikacja ze sterownikiem realizowana jest poprzez dynamicznie tworzone wpisy w~wirtualnym systemie plików \texttt{sysfs}, wyeksponowane w~katalogu \texttt{/sys/kernel/baremetal/}. Mechanizm ten eliminuje konieczność kompilowania dodatkowych programów przestrzeni użytkownika (np. opartych na wywołaniach \texttt{ioctl}) i~udostępnia następujące funkcje:
 \begin{itemize}
-    \item \textbf{Wgrywanie oprogramowania:} Przesłanie skompilowanego pliku binarnego do węzła \texttt{fw} powoduje przekopiowanie kodu bezpośrednio do wydzielonej pamięci RAM rdzenia bare-metal.
+    \item \textbf{Wgrywanie oprogramowania:} Przesłanie skompilowanego pliku binarnego do węzła \texttt{fw} powoduje przekopiowanie kodu bezpośrednio do wydzielonej pamięci DRAM rdzenia bare-metal.
     \item \textbf{Wybudzanie rdzenia:} Zapis do węzła \texttt{wake} inicjuje wywołanie systemowe \texttt{SMC} (ang. \textit{Secure Monitor Call}), które sprzętowo wybudza wyizolowany rdzeń Cortex-A55 i~rozpoczyna wykonywanie wgranego na niego kodu.
     \item \textbf{Komunikacja IPC:} Węzły \texttt{cmd} oraz \texttt{log} pozwalają odpowiednio na bezkolizyjne wysyłanie poleceń oraz odczytywanie odpowiedzi poprzez bufory kołowe.
 \end{itemize}
 
-Poniżej przedstawiono najważniejsze fragmenty kodu źródłowego sterownika, obrazujące definicję współdzielonych struktur pamięci oraz implementację funkcji wprowadzających logikę aplikacji bare-metal do pamięci RAM i~wybudzających rdzeń.
+Poniżej przedstawiono fragment kodu sterownika definiujący współdzielone struktury pamięci, niezbędne do bezkolizyjnej komunikacji IPC:
 
-\begin{lstlisting}[language=C, caption={Fragmenty kodu sterownika wake\_a55.ko odpowiedzialne za definicję buforów IPC, ładowanie firmware'u oraz wybudzanie rdzenia}, label={lst:wake_a55}]
-#include <linux/module.h>
-#include <linux/kobject.h>
-#include <linux/sysfs.h>
-#include <linux/io.h>
-#include <linux/arm-smccc.h>
-
-// --- DEFINICJE STRUKTURY PAMIĘCI (Musi pasować do Bare Metalu) ---
+\begin{lstlisting}[language=C, caption={Definicja struktur buforów kołowych w~sterowniku wake\_a55.ko}, label={lst:wake_a55_memory}]
 #define RING_BUFFER_SIZE 1024
 
 typedef struct {
@@ -50,27 +42,24 @@ typedef struct {
     RingBuffer linux_to_bm;
     RingBuffer bm_to_linux;
 } SharedMemoryMap;
-// -----------------------------------------------------------------
+\end{lstlisting}
 
-// 1. Zapisywanie pliku .bin do RAM-u
-static ssize_t fw_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
+Kolejny listing obrazuje docelową implementację funkcji wprowadzających logikę aplikacji bare-metal bezpośrednio do pamięci DRAM oraz wybudzających rdzeń poprzez niskopoziomowe wywołanie sprzętowe:
+
+\begin{lstlisting}[language=C, caption={Funkcje odpowiedzialne za ładowanie firmware'u i~wybudzanie wyizolowanego rdzenia za pomocą SMC}, label={lst:wake_a55_functions}]
+static ssize_t fw_store(struct kobject *k, struct kobj_attribute *a, const char *buf, size_t count) {
     void __iomem *code_map = ioremap_wc(0xA0100000, count);
     if (!code_map) return -ENOMEM;
     memcpy_toio(code_map, buf, count);
     iounmap(code_map);
-    pr_info("Wgrano %zu bajtow firmware'u pod adres 0xA0100000\n", count);
     return count;
 }
-static struct kobj_attribute fw_attr = __ATTR_WO(fw);
 
-// 2. Budzenie rdzenia na żądanie
-static ssize_t wake_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
+static ssize_t wake_store(struct kobject *k, struct kobj_attribute *a, const char *buf, size_t count) {
     struct arm_smccc_res res;
     arm_smccc_smc(0xC4000003, 0x101, 0xA0100000, 0, 0, 0, 0, 0, &res);
-    pr_info("SMC Wake (Rdzen 0x101): %ld\n", res.a0);
     return count;
 }
-static struct kobj_attribute wake_attr = __ATTR_WO(wake);
 \end{lstlisting}
 
 \section{Zintegrowany potok budowania (Workflow)}

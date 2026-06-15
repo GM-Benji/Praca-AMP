@@ -10,7 +10,7 @@ Głównym celem stworzenia autorskiego opisu sprzętowego było wyłączenie okr
 \section{Izolacja rdzenia i~rezerwacja pamięci}
 Podstawową modyfikacją w~strukturze drzewa urządzeń była zmiana statusu jednego z~rdzeni procesora (Cortex-A55). Węzeł opisujący ten rdzeń został celowo nadpisany w~taki sposób, aby jądro Linux zignorowało go podczas procedury startowej (tzw. \textit{core isolation}). Pozwoliło to na wydzielenie jednostki obliczeniowej dedykowanej wyłącznie do wykonywania niskopoziomowego kodu bare-metal.
 
-Równie istotnym krokiem było zdefiniowanie węzła \texttt{/reserved-memory}. Zadeklarowano w~nim obszary fizycznej pamięci RAM, które zostały podzielone na dwie kluczowe strefy:
+Równie istotnym krokiem było zdefiniowanie węzła \texttt{/reserved-memory}. Zadeklarowano w~nim obszary fizycznej pamięci DRAM, które zostały podzielone na dwie kluczowe strefy:
 \begin{itemize}
     \item obszar na instrukcje oraz lokalne dane operacyjne dla kodu bare-metal,
     \item oddzielny obszar przeznaczony na bufory komunikacyjne IPC (niezbędne do bezpiecznej wymiany danych z~głównym systemem).
