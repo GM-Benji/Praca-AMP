@@ -600,7 +600,10 @@
         \vskip 3em
         \@instytut
         \vskip 3em
-        \includegraphics[width=\linewidth]{\frontpageheader}
+      
+        % \includegraphics[width=\linewidth]{\frontpageheader}
+        {\huge \textbf{Projekt inżyniersko-techniczny}}
+  
         \vskip 1em
         \kieruneklocal \@kierunek
         \vskip .5em

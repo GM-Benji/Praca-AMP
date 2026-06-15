@@ -1,7 +1,7 @@
 \chapter{Podsumowanie}
 \label{ch:podsumowanie}
 
-W~ramach zrealizowanej pracy inżynierskiej pomyślnie zaprojektowano i~wdrożono architekturę asymetrycznego przetwarzania wielordzeniowego (AMP) na platformie Terasic DE25-Nano, opartej o~nowoczesny układ SoC Intel Agilex 5. Proces ten wymagał zestawienia kompletnego, zdalnego stanowiska pracy oraz przygotowania od podstaw spersonalizowanej platformy sprzętowo-programowej.
+W~ramach zrealizowanego projektu inżyniersko-technicznego pomyślnie zaprojektowano i~wdrożono architekturę asymetrycznego przetwarzania wielordzeniowego (AMP) na platformie Terasic DE25-Nano, opartej o~nowoczesny układ SoC Intel Agilex 5. Proces ten wymagał zestawienia kompletnego, zdalnego stanowiska pracy oraz przygotowania od podstaw spersonalizowanej platformy sprzętowo-programowej.
 
 Zrealizowane cele obejmowały konfigurację środowiska kompilacji skrośnej, zbudowanie zoptymalizowanego systemu plików w~oparciu o~Yocto Project, a~także kompilację dedykowanego jądra systemu Linux. Kluczowym osiągnięciem było przygotowanie autorskiego opisu sprzętowego (drzewa urządzeń DTB) oraz zaimplementowanie własnych modułów jądra, co pozwoliło na bezpieczne i~precyzyjne wyizolowanie zasobów sprzętowych.
 
@@ -9,6 +9,6 @@ Zastosowanie w~głównym systemie jądra z~włączoną łatą czasu rzeczywisteg
 
 Z~kolei fizyczne wyizolowanie jednego z~rdzeni procesora (Cortex-A55) do pracy w~trybie bare-metal otworzyło możliwości niedostępne dla tradycyjnych systemów operacyjnych. Wykonywanie wysoce krytycznego czasowo kodu z~absolutnym pominięciem narzutu systemu operacyjnego gwarantuje najwyższą możliwą wydajność. Oprogramowanie to posiada bezpośredni, niczym niezakłócony dostęp do sprzętu oraz stały, w~pełni mierzalny czas wykonywania poszczególnych instrukcji.
 
-Zwieńczeniem prac inżynierskich było ustanowienie stabilnej, dwukierunkowej komunikacji międzyprocesorowej (IPC) pomiędzy głównym systemem Linux a~rdzeniem pomocniczym. Zaprezentowane rozwiązanie oparte o~bezkolizyjne bufory kołowe i~mechanizmy barier pamięci stanowi w~pełni działający dowód słuszności koncepcji (ang. \textit{Proof of Concept}) dla zaproponowanej architektury asymetrycznej.
+Zwieńczeniem prac projektowych było ustanowienie stabilnej, dwukierunkowej komunikacji międzyprocesorowej (IPC) pomiędzy głównym systemem Linux a~rdzeniem pomocniczym. Zaprezentowane rozwiązanie oparte o~bezkolizyjne bufory kołowe i~mechanizmy barier pamięci stanowi w~pełni działający dowód słuszności koncepcji (ang. \textit{Proof of Concept}) dla zaproponowanej architektury asymetrycznej.
 
 Opracowana infrastruktura nie jest rozwiązaniem zamkniętym, lecz wysoce elastycznym fundamentem. Pomyślne wdrożenie koncepcji AMP udowadnia, że przygotowane środowisko może zostać w~przyszłości z~powodzeniem wykorzystane do budowy znacznie bardziej zaawansowanych projektów. Platforma płynnie łącząca bogate zaplecze sieciowe i~aplikacyjne systemu Linux z~twardym determinizmem układów bare-metal stanowi idealną bazę pod rozwój precyzyjnych systemów sterowania ruchem, zaawansowanej robotyki czy przemysłowych platform akwizycji danych.
